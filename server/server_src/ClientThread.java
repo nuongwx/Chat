@@ -16,6 +16,9 @@ public class ClientThread extends Thread {
     }
 
     public static void SendMessage(ClientThread clientThread, Room room, Message message) {
+        if(clientThread == null) {
+            return;
+        }
         try {
             clientThread.sender.write("message");
             clientThread.sender.newLine();
@@ -153,9 +156,9 @@ public class ClientThread extends Thread {
                                 if (room.id.equals(roomId)) {
                                     room.messages.add(new Message(message, senderName));
                                     for (String user : room.users) {
-                                        if (!user.equals(senderName)) {
+//                                        if (!user.equals(senderName)) {
                                             SendMessage(MainServer.clients.get(user), room, newMessage);
-                                        }
+//                                        }
                                     }
                                     break;
                                 }
@@ -234,9 +237,12 @@ public class ClientThread extends Thread {
                                 if (room.id.equals(roomId)) {
                                     room.users.add(invitee);
                                     for (String user : room.users) {
-                                        if (!user.equals(inviter)) {
-                                            SendMessage(MainServer.clients.get(user), room, new Message(invitee + " has joined the room", inviter));
-                                        }
+//                                        if (!user.equals(inviter)) {
+
+                                          if (MainServer.clients.containsKey(user)) {
+                                              SendMessage(MainServer.clients.get(user), room, new Message(invitee + " has joined the room", inviter));
+                                          }
+//                                        }
                                     }
                                     break;
                                 }
@@ -286,9 +292,11 @@ public class ClientThread extends Thread {
                                 }
                             }
                             break;
-                        case "fetch users":
+                        case "fetch members":
                             roomId = Long.parseLong(receiver.readLine());
-                            sender.write("users");
+                            sender.write("members");
+                            sender.newLine();
+                            sender.write(roomId.toString());
                             sender.newLine();
                             sender.write(String.valueOf(MainServer.rooms.stream().filter(room -> room.id.equals(roomId)).findFirst().get().users.size()));
                             sender.newLine();

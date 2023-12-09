@@ -5,78 +5,79 @@ import com.sun.tools.javac.Main;
 import java.io.*;
 import java.net.*;
 
-public class MainClient
-{
+public class MainClient {
     public static Socket s;
     public static InputStream is;
     public static BufferedReader br;
     public static OutputStream os;
     public static BufferedWriter bw;
-    
-    public static void main(String arg[])
-    {
-        try
-        {
-            s = new Socket("localhost",3200);
+
+    public static void main(String arg[]) {
+        try {
+            s = new Socket("localhost", 3200);
             System.out.println(s.getPort());
 
-            is=s.getInputStream();
-            br=new BufferedReader(new InputStreamReader(is));
+            is = s.getInputStream();
+            br = new BufferedReader(new InputStreamReader(is));
 
-            os=s.getOutputStream();
+            os = s.getOutputStream();
             bw = new BufferedWriter(new OutputStreamWriter(os));
 
-            String sentMessage="";
+            String sentMessage = "";
 
-     		System.out.println("Talking to Server");
+            System.out.println("Talking to Server");
 
-             LogonScreen logonScreen = new LogonScreen();
+            LogonScreen logonScreen = new LogonScreen();
 
-             MainScreen mainScreen = new MainScreen();
+            MainScreen mainScreen = new MainScreen();
 
             Thread t = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    while(true) {
+                    while (true) {
                         try {
                             if (br.ready()) {
                                 String receivedMessage = br.readLine();
                                 System.out.println(">" + receivedMessage);
-                                if(receivedMessage.equalsIgnoreCase("download")) {
+                                if (receivedMessage.equalsIgnoreCase("download")) {
                                     String fileName = br.readLine();
                                     String fileSize = br.readLine();
                                     System.out.println("Downloading file " + fileName + " with size " + fileSize);
                                     FileOutputStream fos = new FileOutputStream(fileName);
-                                    if(!fileSize.equals("0"))
-                                    {
-                                    byte[] buffer = new byte[1024];
-                                    int length;
-                                    while ((length = is.read(buffer)) > 0) {
-                                        System.out.println(length);
-                                        fos.write(buffer, 0, length);
-                                        if(length < 1024) break;
-                                    }
+                                    if (!fileSize.equals("0")) {
+                                        byte[] buffer = new byte[1024];
+                                        int length;
+                                        while ((length = is.read(buffer)) > 0) {
+                                            System.out.println(length);
+                                            fos.write(buffer, 0, length);
+                                            if (length < 1024) break;
+                                        }
                                     }
                                     fos.flush();
                                     fos.close();
                                     System.out.println("Downloaded file " + fileName);
                                 }
-                                if(receivedMessage.equalsIgnoreCase("message")) {
+                                if (receivedMessage.equalsIgnoreCase("message")) {
                                     String roomId = br.readLine();
                                     String messageId = br.readLine();
                                     String author = br.readLine();
                                     String text = br.readLine();
                                     System.out.println(roomId + " " + messageId + " " + author + " " + text);
+                                    Message message = new Message(Long.parseLong(messageId), text, author);
 
-                                    if(MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).count() == 0) {
+                                    if (MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).count() == 0) {
                                         MainClient.bw.write("fetch rooms\n");
                                         MainClient.bw.flush();
-
+                                        Room room = new Room(Long.parseLong(roomId), roomId);
                                     }
+                                    MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).findFirst().get().addMessage(message);
+//                                        if(MainScreen.currentRoom != null && MainScreen.currentRoom.id.equals(Long.parseLong(roomId))) {
+//                                            MainScreen.roomsPanel.addMessage(new Message(Long.parseLong(messageId), text, author));
+//                                        }
                                 }
-                                if(receivedMessage.equalsIgnoreCase("messages")) {
+                                if (receivedMessage.equalsIgnoreCase("messages")) {
                                     Integer n = Integer.parseInt(br.readLine());
-                                    for(int i = 0; i < n; i++) {
+                                    for (int i = 0; i < n; i++) {
                                         String header = br.readLine();
                                         String roomId = br.readLine();
                                         String messageId = br.readLine();
@@ -84,13 +85,20 @@ public class MainClient
                                         String text = br.readLine();
 //                                        mainScreen.roomsPanel.addMessage(new Message(Long.parseLong(messageId), text, author));
                                         System.out.println(header + " " + roomId + " " + messageId + " " + author + " " + text);
+                                        Message message = new Message(Long.parseLong(messageId), text, author);
+                                        if (MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).count() == 0) {
+                                            MainClient.bw.write("fetch rooms\n");
+                                            MainClient.bw.flush();
+                                            Room room = new Room(Long.parseLong(roomId), roomId);
+                                        }
+                                        MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).findFirst().get().addMessage(message);
                                     }
                                 }
-                                if(receivedMessage.equalsIgnoreCase("online")) {
+                                if (receivedMessage.equalsIgnoreCase("online")) {
                                     Integer n = Integer.parseInt(br.readLine());
                                     MainScreen.onlineUsersListModel.clear();
                                     System.out.println(n);
-                                    for(int i = 0; i < n; i++) {
+                                    for (int i = 0; i < n; i++) {
                                         String username = br.readLine();
                                         System.out.println(username);
                                         MainScreen.onlineUsers.add(username);
@@ -98,15 +106,35 @@ public class MainClient
                                     }
 
                                 }
-                                if(receivedMessage.equalsIgnoreCase("rooms")) {
+                                if (receivedMessage.equalsIgnoreCase("rooms")) {
                                     Integer n = Integer.parseInt(br.readLine());
-                                    MainScreen.rooms.clear();
-                                    for(int i = 0; i < n; i++) {
+//                                    MainScreen.rooms.clear();
+//                                    MainScreen.roomsListModel.clear();
+                                    for (int i = 0; i < n; i++) {
                                         String roomId = br.readLine();
                                         String roomName = br.readLine();
                                         System.out.println(roomId + " " + roomName);
-                                        MainScreen.rooms.add(new Room(Long.parseLong(roomId), roomName));
-                                        MainScreen.roomsListModel.addElement(roomName);
+//                                        MainScreen.rooms.add(new Room(Long.parseLong(roomId), roomName));\
+                                        if (MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).count() == 0) {
+//                                            MainScreen.rooms.add(new Room(Long.parseLong(roomId), roomName));
+                                            new Room(Long.parseLong(roomId), roomName);
+                                        }
+                                        MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).findFirst().get().setName(roomName);
+                                        MainClient.bw.write("fetch members\n");
+                                        MainClient.bw.write(roomId + "\n");
+                                        MainClient.bw.flush();
+                                    }
+                                }
+                                if(receivedMessage.equalsIgnoreCase("members"))
+                                {
+                                    String roomId = br.readLine();
+                                    Room room = MainScreen.rooms.stream().filter(r -> r.id.equals(Long.parseLong(roomId))).findFirst().get();
+                                    Integer n = Integer.parseInt(br.readLine());
+                                    for(int i = 0; i < n; i++)
+                                    {
+                                        String username = br.readLine();
+                                        System.out.println(roomId + " " + username);
+                                        room.addMember(username);
                                     }
                                 }
 //                                else if(receivedMessage.equalsIgnoreCase("rooms")) {
@@ -173,10 +201,9 @@ public class MainClient
             t.start();
 
 
-            do
-            {
-                DataInputStream din=new DataInputStream(System.in);
-                sentMessage=din.readLine();
+            do {
+                DataInputStream din = new DataInputStream(System.in);
+                sentMessage = din.readLine();
 
                 if (sentMessage.equalsIgnoreCase("quit")) {
                     break;
@@ -207,21 +234,18 @@ public class MainClient
                     }
                     os.flush();
                     fis.close();
-                }
-                else {
+                } else {
                     bw.write(sentMessage);
                     bw.newLine();
                     bw.flush();
                 }
 
             }
-            while(true);
+            while (true);
 
             bw.close();
             br.close();
-        }
-        catch(IOException e)
-        {
+        } catch (IOException e) {
             System.out.println("There're some error");
         }
     }
