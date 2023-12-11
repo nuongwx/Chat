@@ -2,7 +2,8 @@ package client_src;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.IOException;
+import java.io.*;
+import java.net.Socket;
 import java.util.*;
 
 public class MainScreen extends JFrame {
@@ -20,6 +21,13 @@ public class MainScreen extends JFrame {
     public static DefaultListModel<String> roomMembersListModel = new DefaultListModel<String>();
     public static JList<String> roomMembersList = new JList<String>(roomMembersListModel);
     public static JTabbedPane tabbedPane = new JTabbedPane();
+
+    JTextField textField = new JTextField();
+    JButton fileButton = new JButton("✚");
+    JButton sendButton = new JButton("Send");
+    JButton inviteButton = new JButton("Invite");
+    public static JFileChooser fileChooser = new JFileChooser();
+
 
     public MainScreen() {
         super("Chat Application");
@@ -70,8 +78,44 @@ public class MainScreen extends JFrame {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+                textField.setEnabled(true);
+                sendButton.setEnabled(true);
+                inviteButton.setEnabled(true);
             }
         });
+
+        JButton createRoomButton = new JButton("Create Room");
+        createRoomButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                JPanel panel = new JPanel();
+                panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+                JTextField roomNameField = new JTextField();
+                panel.add(new JLabel("Room Name"));
+                panel.add(roomNameField);
+                JList membersList = new JList(onlineUsersListModel);
+                panel.add(new JLabel("Members"));
+                panel.add(membersList);
+                JOptionPane.showMessageDialog(null, panel);
+                String roomName = roomNameField.getText();
+                if (roomName != null && !roomName.isBlank()) {
+                    try {
+                        MainClient.bw.write("create room\n");
+                        MainClient.bw.write(roomName + "\n");
+                        MainClient.bw.write(membersList.getSelectedValuesList().size() + "\n");
+                        for (Object member : membersList.getSelectedValuesList()) {
+                            MainClient.bw.write(member.toString() + "\n");
+                        }
+                        MainClient.bw.flush();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(null, "Room name cannot be empty");
+                }
+            }
+        });
+        leftBottomPanel.add(Box.createVerticalGlue());
+        leftBottomPanel.add(createRoomButton);
 
         leftSplitPane.setBottomComponent(leftBottomPanel);
 
@@ -99,7 +143,9 @@ public class MainScreen extends JFrame {
                 for (String member : roomMsgPanel.room.members) {
                     roomMembersListModel.addElement(member);
                 }
-
+                textField.setEnabled(true);
+                sendButton.setEnabled(true);
+                inviteButton.setEnabled(true);
 
             }
         });
@@ -111,10 +157,47 @@ public class MainScreen extends JFrame {
         gbc.weightx = 1;
         rightMiddlePane.add(tabbedPane, gbc);
 
+        fileButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                int returnVal = fileChooser.showOpenDialog(MainScreen.this);
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    try {
+                        MainClient.bw.write("upload\n");
+                        MainClient.bw.write(((RoomMsgPanel) tabbedPane.getSelectedComponent()).room.id + "\n");
+                        MainClient.bw.write(file.getName() + "\n");
+                        MainClient.bw.write(file.length() + "\n");
+                        MainClient.bw.flush();
+                        MainClient.bw.flush();
 
-        JTextField textField = new JTextField();
-        JButton button = new JButton("Send");
-        button.addActionListener(new java.awt.event.ActionListener() {
+                        // blocks server-side bufferedReader buffer-reading thing
+                        Thread.sleep(150); // i love concurrency
+
+                        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+                        byte[] buffer = new byte[1024];
+                        int count;
+                        if(file.length() > 0) {
+                            while ((count = bis.read(buffer)) > 0) {
+                                MainClient.os.write(buffer, 0, count);
+                            }
+                        }
+                        bis.close();
+                        MainClient.os.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    System.out.println("Open command cancelled by user.");
+                }
+            }
+        });
+        textField = new JTextField();
+        sendButton = new JButton("Send");
+        sendButton.setEnabled(false);
+        textField.setEnabled(false);
+        sendButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String message = textField.getText();
                 try {
@@ -130,8 +213,9 @@ public class MainScreen extends JFrame {
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.add(fileButton);
         buttonPanel.add(textField);
-        buttonPanel.add(button);
+        buttonPanel.add(sendButton);
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weighty = 0;
@@ -144,6 +228,34 @@ public class MainScreen extends JFrame {
         rightMemberPanel.setLayout(new BoxLayout(rightMemberPanel, BoxLayout.Y_AXIS));
         rightMemberPanel.add(new JLabel("Members"));
         rightMemberPanel.add(roomMembersList);
+
+        inviteButton = new JButton("Invite");
+        inviteButton.setEnabled(false);
+        inviteButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                JPanel panel = new JPanel();
+                panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+                JList membersList = new JList(onlineUsersListModel);
+                panel.add(new JLabel("Members"));
+                panel.add(membersList);
+                JOptionPane.showMessageDialog(null, panel);
+                try {
+                    MainClient.bw.write("invite\n");
+                    MainClient.bw.write(((RoomMsgPanel) tabbedPane.getSelectedComponent()).room.id + "\n");
+                    MainClient.bw.write(membersList.getSelectedValuesList().size() + "\n");
+                    for (Object member : membersList.getSelectedValuesList()) {
+                        MainClient.bw.write(member.toString() + "\n");
+                    }
+                    MainClient.bw.flush();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+        rightMemberPanel.add(Box.createVerticalGlue());
+        rightMemberPanel.add(inviteButton);
+
+
         rightSplitPane.setRightComponent(rightMemberPanel);
 
         rightSplitPane.setLeftComponent(rightMiddlePane);
@@ -164,7 +276,7 @@ public class MainScreen extends JFrame {
 
         add(splitPane);
 
-
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
 

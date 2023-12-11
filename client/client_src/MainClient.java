@@ -2,6 +2,7 @@ package client_src;
 
 import com.sun.tools.javac.Main;
 
+import javax.swing.*;
 import java.io.*;
 import java.net.*;
 
@@ -11,6 +12,8 @@ public class MainClient {
     public static BufferedReader br;
     public static OutputStream os;
     public static BufferedWriter bw;
+    public static Thread t;
+
 
     public static void main(String arg[]) {
         try {
@@ -18,10 +21,10 @@ public class MainClient {
             System.out.println(s.getPort());
 
             is = s.getInputStream();
-            br = new BufferedReader(new InputStreamReader(is));
+            br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 
             os = s.getOutputStream();
-            bw = new BufferedWriter(new OutputStreamWriter(os));
+            bw = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
 
             String sentMessage = "";
 
@@ -31,7 +34,7 @@ public class MainClient {
 
             MainScreen mainScreen = new MainScreen();
 
-            Thread t = new Thread(new Runnable() {
+            t = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     while (true) {
@@ -40,21 +43,41 @@ public class MainClient {
                                 String receivedMessage = br.readLine();
                                 System.out.println(">" + receivedMessage);
                                 if (receivedMessage.equalsIgnoreCase("download")) {
-                                    String fileName = br.readLine();
-                                    String fileSize = br.readLine();
+                                    // split at first space
+                                    String fileName = br.readLine().split("_", 2)[1];
+                                    Long fileSize = Long.parseLong(br.readLine());
                                     System.out.println("Downloading file " + fileName + " with size " + fileSize);
-                                    FileOutputStream fos = new FileOutputStream(fileName);
-                                    if (!fileSize.equals("0")) {
-                                        byte[] buffer = new byte[1024];
-                                        int length;
-                                        while ((length = is.read(buffer)) > 0) {
-                                            System.out.println(length);
-                                            fos.write(buffer, 0, length);
-                                            if (length < 1024) break;
+                                    File file = new File(fileName);
+                                    MainScreen.fileChooser.setSelectedFile(file);
+                                    int ret = MainScreen.fileChooser.showSaveDialog(mainScreen);
+//                                    Thread.sleep(150);
+                                    if (ret != JFileChooser.APPROVE_OPTION) {
+                                        MainClient.bw.write("cancel download\n");
+                                        MainClient.bw.flush();
+                                        continue;
+                                    } else {
+                                        MainClient.bw.write("ok\n");
+                                        MainClient.bw.flush();
+                                    }
+                                    Thread.sleep(150);
+                                    file = MainScreen.fileChooser.getSelectedFile();
+//                                    File file = new File(fileName);
+                                    if (file == null) {
+                                        continue;
+                                    }
+                                    FileOutputStream fos = new FileOutputStream(file);
+                                    // purposedly rate limit the download
+                                    byte[] buffer = new byte[2048];
+                                    int length;
+                                    while ((length = is.read(buffer)) > 0) {
+                                        fos.write(buffer, 0, length);
+                                        if (length < 2048) {
+                                            break;
                                         }
                                     }
                                     fos.flush();
                                     fos.close();
+
                                     System.out.println("Downloaded file " + fileName);
                                 }
                                 if (receivedMessage.equalsIgnoreCase("message")) {
@@ -125,13 +148,11 @@ public class MainClient {
                                         MainClient.bw.flush();
                                     }
                                 }
-                                if(receivedMessage.equalsIgnoreCase("members"))
-                                {
+                                if (receivedMessage.equalsIgnoreCase("members")) {
                                     String roomId = br.readLine();
                                     Room room = MainScreen.rooms.stream().filter(r -> r.id.equals(Long.parseLong(roomId))).findFirst().get();
                                     Integer n = Integer.parseInt(br.readLine());
-                                    for(int i = 0; i < n; i++)
-                                    {
+                                    for (int i = 0; i < n; i++) {
                                         String username = br.readLine();
                                         System.out.println(roomId + " " + username);
                                         room.addMember(username);
@@ -193,6 +214,8 @@ public class MainClient {
                             }
                         } catch (IOException e) {
                             System.out.println(e.getMessage());
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
                         }
                     }
                 }
@@ -229,8 +252,10 @@ public class MainClient {
                     FileInputStream fis = new FileInputStream(file);
                     byte[] buffer = new byte[1024];
                     int length;
-                    while ((length = fis.read(buffer)) > 0) {
-                        os.write(buffer, 0, length);
+                    if (file.length() > 0) {
+                        while ((length = fis.read(buffer)) > 0) {
+                            os.write(buffer, 0, length);
+                        }
                     }
                     os.flush();
                     fis.close();

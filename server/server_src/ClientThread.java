@@ -1,22 +1,36 @@
 package server_src;
 
+import client_src.MainClient;
+
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ClientThread extends Thread {
     public Socket socket;
+
+    public InputStream inputStream;
+    public OutputStream outputStream;
     public BufferedReader receiver;
     public BufferedWriter sender;
 
+//    public DataInputStream dis;
+//    public DataOutputStream dos;
+
     public ClientThread(Socket socket) throws IOException {
         this.socket = socket;
-        receiver = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        sender = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+        inputStream = socket.getInputStream();
+        outputStream = socket.getOutputStream();
+        receiver = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8), 1);
+        sender = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+//        dis = new DataInputStream(socket.getInputStream());
+//        dos = new DataOutputStream(socket.getOutputStream());
     }
 
     public static void SendMessage(ClientThread clientThread, Room room, Message message) {
-        if(clientThread == null) {
+        if (clientThread == null) {
             return;
         }
         try {
@@ -33,6 +47,9 @@ public class ClientThread extends Thread {
             clientThread.sender.flush();
         } catch (IOException e) {
             System.out.println(e.getMessage());
+        }
+        if (!room.messages.contains(message)) {
+            room.messages.add(message);
         }
     }
 
@@ -154,10 +171,10 @@ public class ClientThread extends Thread {
 
                             for (server_src.Room room : MainServer.rooms) {
                                 if (room.id.equals(roomId)) {
-                                    room.messages.add(new Message(message, senderName));
+                                    room.messages.add(newMessage);
                                     for (String user : room.users) {
 //                                        if (!user.equals(senderName)) {
-                                            SendMessage(MainServer.clients.get(user), room, newMessage);
+                                        SendMessage(MainServer.clients.get(user), room, newMessage);
 //                                        }
                                     }
                                     break;
@@ -176,35 +193,42 @@ public class ClientThread extends Thread {
 
                             server_src.Room newRoom = new server_src.Room(roomName, users);
                             MainServer.rooms.add(newRoom);
+                            newMessage = new Message("Room created", roomCreator);
                             for (String user : users) {
-                                SendMessage(MainServer.clients.get(user), newRoom, new Message("Room created", roomCreator));
+                                SendMessage(MainServer.clients.get(user), newRoom, newMessage);
                             }
                             break;
                         case "upload":
                             roomId = Long.parseLong(receiver.readLine());
-                            senderName = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
+                            String name = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
                             String fileName = receiver.readLine();
                             Long fileSize = Long.parseLong(receiver.readLine());
-                            Message messageUpload = new Message("File uploaded: " + fileName + " (" + fileSize + " bytes)", senderName);
-                            FileOutputStream fos = new FileOutputStream(messageUpload.id.toString() + " " + fileName);
-                            byte[] buffer = new byte[1024];
-                            int length;
-                            while (fileSize > 0 && (length = socket.getInputStream().read(buffer, 0, (int) Math.min(buffer.length, fileSize))) != -1) {
-                                fos.write(buffer, 0, length);
-                                fileSize -= length;
+                            // ​ marker
+                            Message messageUpload = new Message("\u200BFile uploaded: " + fileName + " (" + fileSize + " bytes)", name);
+                            FileOutputStream fos = new FileOutputStream(messageUpload.id + "_" + fileName);
+                            byte[] buffer = new byte[4096];
+                            int length = 0;
+                            if (fileSize > 0) {
+                                while ((length = inputStream.read(buffer)) > 0) {
+                                    fos.write(buffer, 0, length);
+                                    fileSize -= length;
+                                    if (fileSize == 0) {
+                                        break;
+                                    }
+                                }
                             }
+                            System.out.println("File uploaded: " + fileName);
                             fos.close();
                             for (server_src.Room room : MainServer.rooms) {
                                 if (room.id.equals(roomId)) {
                                     room.messages.add(messageUpload);
                                     for (String user : room.users) {
-                                        if (!user.equals(senderName)) {
-                                            SendMessage(MainServer.clients.get(user), room, messageUpload);
-                                        }
+                                        SendMessage(MainServer.clients.get(user), room, messageUpload);
                                     }
-                                    break;
                                 }
+                                break;
                             }
+                            receiver = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                             break;
                         case "download":
                             String id = receiver.readLine();
@@ -218,36 +242,64 @@ public class ClientThread extends Thread {
                                     sender.write(String.valueOf(file.length()));
                                     sender.newLine();
                                     sender.flush();
-                                    FileInputStream fis = new FileInputStream(file);
-                                    buffer = new byte[1024];
-                                    while ((length = fis.read(buffer)) > 0) {
-                                        socket.getOutputStream().write(buffer, 0, length);
+                                    sender.flush();
+                                    Thread.sleep(150);
+                                    if (!receiver.readLine().equalsIgnoreCase("ok")) {
+                                        System.out.println("Download cancelled");
+                                        break;
                                     }
-                                    socket.getOutputStream().flush();
+                                    FileInputStream fis = new FileInputStream(file);
+                                    byte[] bufferDownload = new byte[4096];
+                                    int lengthDownload = 0;
+                                    if (file.length() > 0) {
+                                        while ((lengthDownload = fis.read(bufferDownload)) > 0) {
+                                            outputStream.write(bufferDownload, 0, lengthDownload);
+                                        }
+                                    }
+                                    outputStream.flush();
                                     fis.close();
+
                                     break;
                                 }
                             }
                             break;
                         case "invite":
                             String inviter = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
-                            String invitee = receiver.readLine();
                             roomId = Long.parseLong(receiver.readLine());
-                            for (server_src.Room room : MainServer.rooms) {
-                                if (room.id.equals(roomId)) {
-                                    room.users.add(invitee);
-                                    for (String user : room.users) {
-//                                        if (!user.equals(inviter)) {
-
-                                          if (MainServer.clients.containsKey(user)) {
-                                              SendMessage(MainServer.clients.get(user), room, new Message(invitee + " has joined the room", inviter));
-                                          }
-//                                        }
-                                    }
-                                    break;
-                                }
+                            Integer numberOfInvitees = Integer.parseInt(receiver.readLine());
+                            ArrayList<String> invitees = new ArrayList<String>();
+                            for (int i = 0; i < numberOfInvitees; i++) {
+                                invitees.add(receiver.readLine());
                             }
+
+                            for (String invitee : invitees) {
+                                Room room = MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().get();
+                                room.users.add(invitee);
+//                                SendMessage(MainServer.clients.get(invitee), room, new Message(inviter + " has invited you to join the room", inviter));
+                            }
+//                            SendMessage(this, MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().get(), new Message("Invitation sent", inviter));
+                            newMessage = new Message(inviter + " has invited " + invitees.stream().reduce((a, b) -> a + ", " + b).get() + " to join the room", inviter);
+                            for (String member : MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().get().users) {
+                                SendMessage(MainServer.clients.get(member), MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().get(), newMessage);
+                            }
+
                             break;
+
+//                            for (server_src.Room room : MainServer.rooms) {
+//                                if (room.id.equals(roomId)) {
+//                                    room.users.add(invitee);
+//                                    for (String user : room.users) {
+////                                        if (!user.equals(inviter)) {
+//
+//                                          if (MainServer.clients.containsKey(user)) {
+//                                              SendMessage(MainServer.clients.get(user), room, new Message(invitee + " has joined the room", inviter));
+//                                          }
+////                                        }
+//                                    }
+//                                    break;
+//                                }
+//                            }
+//                            break;
                         case "sync":
                             String usernameSync = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
                             for (server_src.Room room : MainServer.rooms) {
