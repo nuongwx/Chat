@@ -23,7 +23,7 @@ public class ClientThread extends Thread {
         this.socket = socket;
         inputStream = socket.getInputStream();
         outputStream = socket.getOutputStream();
-        receiver = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8), 1);
+        receiver = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
         sender = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
 //        dis = new DataInputStream(socket.getInputStream());
 //        dos = new DataOutputStream(socket.getOutputStream());
@@ -191,7 +191,7 @@ public class ClientThread extends Thread {
                             }
                             users.add(roomCreator);
 
-                            server_src.Room newRoom = new server_src.Room(roomName, users);
+                            Room newRoom = new Room(roomName, users);
                             MainServer.rooms.add(newRoom);
                             newMessage = new Message("Room created", roomCreator);
                             for (String user : users) {
@@ -225,8 +225,8 @@ public class ClientThread extends Thread {
                                     for (String user : room.users) {
                                         SendMessage(MainServer.clients.get(user), room, messageUpload);
                                     }
+                                    break;
                                 }
-                                break;
                             }
                             receiver = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                             break;
@@ -379,6 +379,27 @@ public class ClientThread extends Thread {
                                 }
                             }
                             sender.flush();
+                            break;
+                        case "delete message":
+                            roomId = Long.parseLong(receiver.readLine());
+                            System.out.println("Room id" + roomId.toString());
+                            Long messageId = Long.parseLong(receiver.readLine());
+                            System.out.println("Message id" + messageId.toString());
+                            for (server_src.Room room : MainServer.rooms) {
+                                if (room.id.equals(roomId)) {
+                                    for (Message msg : room.messages) {
+                                        if (msg.id.equals(messageId)) {
+                                            msg.text = "deleted";
+                                            SendMessage(this, room, msg);
+//                                          delete the message from the server
+                                            room.messages.remove(msg);
+
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
                             break;
 
                         default:

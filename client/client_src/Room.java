@@ -16,6 +16,15 @@ public class Room {
     }
 
     public void addMessage(Message message) {
+        // if messageid already exists, delete the old message
+        for (int i = 0; i < messages.size(); i++) {
+            if (messages.get(i).id.equals(message.id)) {
+                messages.remove(i);
+                roomMsgPanel.refresh();
+                return;
+            }
+        }
+
         messages.add(message);
         roomMsgPanel.addMessage(message);
     }

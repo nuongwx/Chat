@@ -183,6 +183,7 @@ public class MainScreen extends JFrame {
                         }
                         bis.close();
                         MainClient.os.flush();
+                        System.out.println("File sent");
                     } catch (IOException e) {
                         e.printStackTrace();
                     } catch (InterruptedException e) {
@@ -202,7 +203,7 @@ public class MainScreen extends JFrame {
                 String message = textField.getText();
                 try {
                     MainClient.bw.write("message\n");
-                    MainClient.bw.write(MainScreen.rooms.get(tabbedPane.getSelectedIndex()).id + "\n");
+                    MainClient.bw.write(((RoomMsgPanel) tabbedPane.getSelectedComponent()).room.id + "\n");
                     MainClient.bw.write(message + "\n");
                     MainClient.bw.flush();
                 } catch (IOException e) {

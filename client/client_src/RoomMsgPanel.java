@@ -25,6 +25,7 @@ public class RoomMsgPanel extends JPanel {
                             public void actionPerformed(java.awt.event.ActionEvent evt) {
                                 try {
                                     MainClient.bw.write("delete message\n");
+                                    MainClient.bw.write(room.id + "\n");
                                     MainClient.bw.write(message.id + "\n");
                                     MainClient.bw.flush();
                                 } catch (IOException e) {
@@ -75,6 +76,7 @@ public class RoomMsgPanel extends JPanel {
                         public void actionPerformed(java.awt.event.ActionEvent evt) {
                             try {
                                 MainClient.bw.write("delete message\n");
+                                MainClient.bw.write(room.id + "\n");
                                 MainClient.bw.write(message.id + "\n");
                                 MainClient.bw.flush();
                             } catch (IOException e) {
@@ -113,7 +115,7 @@ public class RoomMsgPanel extends JPanel {
         msgPanel.removeAll();
         msgPanel.setLayout(new BoxLayout(msgPanel, BoxLayout.Y_AXIS));
         for (Message message : room.getMessages()) {
-            msgPanel.add(new JLabel(message.author + ": " + message.text));
+            this.addMessage(message);
         }
         msgPanel.revalidate();
         msgPanel.repaint();
