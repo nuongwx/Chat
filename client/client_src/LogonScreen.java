@@ -4,6 +4,7 @@ import com.sun.tools.javac.Main;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 
 public class LogonScreen extends JFrame {
     private JPanel panel1;
@@ -45,6 +46,14 @@ public class LogonScreen extends JFrame {
                             MainClient.bw.write("online\n");
                             MainClient.bw.write("fetch rooms\n");
                             MainClient.bw.flush();
+
+                            MainClient.username = username;
+                            MainClient.mainScreen = new MainScreen();
+
+                            MainClient.logonScreen.setVisible(false);
+                            MainClient.logonScreen.dispose();
+
+                            MainClient.t.start();
                         } else {
                             JOptionPane.showMessageDialog(null, "Login failed");
                         }
@@ -110,6 +119,9 @@ public class LogonScreen extends JFrame {
         gbc.gridy = 2;
         panel1.add(registerButton, gbc);
         this.add(panel1);
+
+        this.getRootPane().setDefaultButton(loginButton);
+
         this.setSize(400, 400);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true);

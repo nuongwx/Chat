@@ -13,7 +13,9 @@ public class MainClient {
     public static OutputStream os;
     public static BufferedWriter bw;
     public static Thread t;
-
+    public static String username;
+    public static LogonScreen logonScreen;
+    public static MainScreen mainScreen;
 
     public static void main(String arg[]) {
         try {
@@ -30,9 +32,7 @@ public class MainClient {
 
             System.out.println("Talking to Server");
 
-            LogonScreen logonScreen = new LogonScreen();
-
-            MainScreen mainScreen = new MainScreen();
+            logonScreen = new LogonScreen();
 
             t = new Thread(new Runnable() {
                 @Override
@@ -221,7 +221,7 @@ public class MainClient {
                 }
             });
 
-            t.start();
+//            t.start();
 
 
             do {

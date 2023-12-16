@@ -8,105 +8,43 @@ import java.util.*;
 public class RoomMsgPanel extends JPanel {
     public JPanel msgPanel = new JPanel();
     public Room room;
+    public JScrollPane scrollPane;
 
 
     public RoomMsgPanel(Room room) {
         super();
         this.room = room;
+        this.setLayout(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.fill = GridBagConstraints.BOTH;
+//        c.anchor = GridBagConstraints.PAGE_START;
+        c.gridx = 0;
+        c.gridy = 0;
+        c.weightx = 1;
+        c.weighty = 1;
+
         msgPanel.setLayout(new BoxLayout(msgPanel, BoxLayout.Y_AXIS));
+
         for (Message message : room.getMessages()) {
-            JLabel label = new JLabel(message.author + ": " + message.text);
-            label.addMouseListener(new java.awt.event.MouseAdapter() {
-                public void mouseClicked(java.awt.event.MouseEvent evt) {
-                    if (SwingUtilities.isRightMouseButton(evt)) {
-                        JPopupMenu popupMenu = new JPopupMenu();
-                        JMenuItem deleteItem = new JMenuItem("Delete");
-                        deleteItem.addActionListener(new java.awt.event.ActionListener() {
-                            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                                try {
-                                    MainClient.bw.write("delete message\n");
-                                    MainClient.bw.write(room.id + "\n");
-                                    MainClient.bw.write(message.id + "\n");
-                                    MainClient.bw.flush();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                        popupMenu.add(deleteItem);
-
-                        if(message.text.contains("\u200B")) {
-                            JMenuItem downloadItem = new JMenuItem("Download");
-                            downloadItem.addActionListener(new java.awt.event.ActionListener() {
-                                public void actionPerformed(java.awt.event.ActionEvent evt) {
-                                    try {
-                                        MainClient.bw.write("download file\n");
-                                        MainClient.bw.write(message.id + "\n");
-                                        MainClient.bw.flush();
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            });
-                            popupMenu.add(downloadItem);
-                        }
-
-                        popupMenu.show(evt.getComponent(), evt.getX(), evt.getY());
-                    }
-                }
-            });
-            msgPanel.add(label);
-//            msgPanel.add(new JLabel(message.author + ": " + message.text));
+            this.addMessage(message);
         }
         msgPanel.revalidate();
         msgPanel.repaint();
-        add(msgPanel);
-//        setVisible(true);
+
+        scrollPane = new JScrollPane(msgPanel);
+        scrollPane.setPreferredSize(new Dimension(500, 200));
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        add(scrollPane, c);
+
+        this.revalidate();
+        this.repaint();
+
     }
 
     public void addMessage(Message message) {
-//        msgPanel.add(new JLabel(message.author + ": " + message.text));
-        JLabel label = new JLabel(message.author + ": " + message.text);
-        label.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                if (SwingUtilities.isRightMouseButton(evt)) {
-                    JPopupMenu popupMenu = new JPopupMenu();
-                    JMenuItem deleteItem = new JMenuItem("Delete");
-                    deleteItem.addActionListener(new java.awt.event.ActionListener() {
-                        public void actionPerformed(java.awt.event.ActionEvent evt) {
-                            try {
-                                MainClient.bw.write("delete message\n");
-                                MainClient.bw.write(room.id + "\n");
-                                MainClient.bw.write(message.id + "\n");
-                                MainClient.bw.flush();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    });
-                    popupMenu.add(deleteItem);
-
-                    if(message.text.contains("\u200B")) {
-                        JMenuItem downloadItem = new JMenuItem("Download");
-                        downloadItem.addActionListener(new java.awt.event.ActionListener() {
-                            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                                try {
-                                    MainClient.bw.write("download\n");
-                                    MainClient.bw.write(message.id + "\n");
-                                    MainClient.bw.flush();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                        popupMenu.add(downloadItem);
-                    }
-
-                    popupMenu.show(evt.getComponent(), evt.getX(), evt.getY());
-                }
-            }
-        });
-        msgPanel.add(label);
+        msgPanel.add(Box.createHorizontalGlue());
+        msgPanel.add(new MessageBubble(message, this));
         msgPanel.revalidate();
         msgPanel.repaint();
     }
@@ -114,24 +52,17 @@ public class RoomMsgPanel extends JPanel {
     public void refresh() {
         msgPanel.removeAll();
         msgPanel.setLayout(new BoxLayout(msgPanel, BoxLayout.Y_AXIS));
+
         for (Message message : room.getMessages()) {
             this.addMessage(message);
         }
-        msgPanel.revalidate();
-        msgPanel.repaint();
+//        msgPanel.revalidate();
+//        msgPanel.repaint();
+
     }
 
     @Override
     public String toString() {
         return room.name;
     }
-
-//    public void paintComponent(Graphics g) {
-//        super.paintComponent(g);
-//        int y = 0;
-//        for (Message message : room.getMessages()) {
-//            g.drawString(message.author + ": " + message.text, 0, y);
-//            y += 20;
-//        }
-//    }
 }

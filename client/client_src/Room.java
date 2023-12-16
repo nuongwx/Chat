@@ -40,6 +40,7 @@ public class Room {
 
     public void setName(String name) {
         this.name = name;
+        MainScreen.roomsListModel.set(MainScreen.roomsListModel.indexOf(this), this);
     }
 
     public void addMember(String username) {

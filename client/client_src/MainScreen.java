@@ -2,6 +2,7 @@ package client_src;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
@@ -70,17 +71,11 @@ public class MainScreen extends JFrame {
                     roomMembersListModel.addElement(member);
                 }
 
-                try {
-                    MainClient.bw.write("fetch messages\n");
-                    MainClient.bw.write(MainScreen.rooms.get(index).id + "\n");
-                    MainClient.bw.flush();
-                    MainScreen.rooms.get(index).clearMessages();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+
                 textField.setEnabled(true);
                 sendButton.setEnabled(true);
                 inviteButton.setEnabled(true);
+                fileButton.setEnabled(true);
             }
         });
 
@@ -134,19 +129,28 @@ public class MainScreen extends JFrame {
                 roomMembersListModel.removeAllElements();
                 RoomMsgPanel roomMsgPanel = (RoomMsgPanel) tabbedPane.getComponentAt(index);
                 try {
+                    MainScreen.rooms.get(index).clearMessages();
+                    MainClient.bw.write("fetch messages\n");
+                    MainClient.bw.write(roomMsgPanel.room.id + "\n");
+                    MainClient.bw.flush();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                try {
                     MainClient.bw.write("fetch members\n");
                     MainClient.bw.write(roomMsgPanel.room.id + "\n");
                     MainClient.bw.flush();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+
                 for (String member : roomMsgPanel.room.members) {
                     roomMembersListModel.addElement(member);
                 }
                 textField.setEnabled(true);
                 sendButton.setEnabled(true);
                 inviteButton.setEnabled(true);
-
+                fileButton.setEnabled(true);
             }
         });
         gbc.gridx = 0;
@@ -157,6 +161,7 @@ public class MainScreen extends JFrame {
         gbc.weightx = 1;
         rightMiddlePane.add(tabbedPane, gbc);
 
+        fileButton.setEnabled(false);
         fileButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 int returnVal = fileChooser.showOpenDialog(MainScreen.this);
@@ -198,6 +203,18 @@ public class MainScreen extends JFrame {
         sendButton = new JButton("Send");
         sendButton.setEnabled(false);
         textField.setEnabled(false);
+
+        textField.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+                    String message = textField.getText();
+                    if(message.isBlank()) {
+                        return;
+                    }
+                    sendButton.doClick();
+                }
+            }
+        });
         sendButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String message = textField.getText();
@@ -209,6 +226,7 @@ public class MainScreen extends JFrame {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                textField.setText("");
             }
         });
 

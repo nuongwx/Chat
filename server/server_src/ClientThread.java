@@ -390,7 +390,10 @@ public class ClientThread extends Thread {
                                     for (Message msg : room.messages) {
                                         if (msg.id.equals(messageId)) {
                                             msg.text = "deleted";
-                                            SendMessage(this, room, msg);
+                                            for(String user : room.users) {
+                                                SendMessage(MainServer.clients.get(user), room, msg);
+                                            }
+//                                            SendMessage(this, room, msg);
 //                                          delete the message from the server
                                             room.messages.remove(msg);
 
