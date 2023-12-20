@@ -19,18 +19,18 @@ public class MainClient {
 
     public static void main(String arg[]) {
         try {
-            s = new Socket("localhost", 3200);
-            System.out.println(s.getPort());
-
-            is = s.getInputStream();
-            br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-
-            os = s.getOutputStream();
-            bw = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
-
+//            s = new Socket("localhost", 3200);
+//            System.out.println(s.getPort());
+//
+//            is = s.getInputStream();
+//            br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+//
+//            os = s.getOutputStream();
+//            bw = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+//
             String sentMessage = "";
-
-            System.out.println("Talking to Server");
+//
+//            System.out.println("Talking to Server");
 
             logonScreen = new LogonScreen();
 

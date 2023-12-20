@@ -102,11 +102,13 @@ public class ClientThread extends Thread {
                             String line;
                             boolean found = false;
                             while ((line = br.readLine()) != null) {
+                                System.out.println(line);
                                 if (line.equals(username + ";" + password)) {
                                     found = true;
                                     break;
                                 }
                             }
+                            br.close();
                             if (found) {
                                 sender.write("login success");
                             } else {
@@ -145,6 +147,7 @@ public class ClientThread extends Thread {
                                     break;
                                 }
                             }
+                            br.close();
                             if (found) {
                                 sender.write("register failed");
                             } else {

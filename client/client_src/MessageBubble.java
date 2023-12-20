@@ -45,6 +45,68 @@ public class MessageBubble extends JPanel {
         textField.revalidate();
         this.add(textField);
 
+        textField.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    JPopupMenu popupMenu = new JPopupMenu();
+                    JMenuItem deleteItem = new JMenuItem("Delete");
+                    deleteItem.addActionListener(new java.awt.event.ActionListener() {
+                        public void actionPerformed(java.awt.event.ActionEvent evt) {
+                            try {
+                                MainClient.bw.write("delete message\n");
+                                MainClient.bw.write(roomMsgPanel.room.id + "\n");
+                                MainClient.bw.write(message.id + "\n");
+                                MainClient.bw.flush();
+                            } catch (Exception e) {
+                                System.out.println(e.getMessage());
+                            }
+                        }
+                    });
+
+                    JMenuItem downloadItem = new JMenuItem("Download");
+                    downloadItem.addActionListener(new java.awt.event.ActionListener() {
+                        public void actionPerformed(java.awt.event.ActionEvent evt) {
+                            try {
+                                MainClient.bw.write("download\n");
+                                MainClient.bw.write(message.id + "\n");
+                                MainClient.bw.flush();
+                            } catch (Exception e) {
+                                System.out.println(e.getMessage());
+                            }
+                        }
+                    });
+                    if (message.author.equals(MainClient.username)) {
+                        popupMenu.add(deleteItem);
+                    }
+                    if (message.text.contains("\u200B")) {
+                        popupMenu.add(downloadItem);
+                    }
+                    popupMenu.show(e.getComponent(), e.getX(), e.getY());
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                // TODO Auto-generated method stub
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                // TODO Auto-generated method stub
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                // TODO Auto-generated method stub
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                // TODO Auto-generated method stub
+            }
+        });
+
 //        this.setMinimumSize(new Dimension(this.getMaximumSize().width, textField.getPreferredSize().height));
         this.setMaximumSize(new Dimension(this.getMaximumSize().width, textField.getPreferredSize().height));
 //        this.setPreferredSize(new Dimension(this.getMaximumSize().width, textField.getPreferredSize().height * 2));

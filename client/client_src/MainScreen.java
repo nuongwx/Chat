@@ -218,6 +218,9 @@ public class MainScreen extends JFrame {
         sendButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String message = textField.getText();
+                if(message.isBlank()) {
+                    return;
+                }
                 try {
                     MainClient.bw.write("message\n");
                     MainClient.bw.write(((RoomMsgPanel) tabbedPane.getSelectedComponent()).room.id + "\n");
