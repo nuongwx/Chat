@@ -7,12 +7,14 @@ public class Room {
     public static Long count = 0L;
     public Long id;
     public String name;
+    public boolean isPrivate = false;
     public ArrayList<Message> messages = new ArrayList<Message>();
     public ArrayList<String> users = new ArrayList<String>();
-    public Room(String name, ArrayList<String> users) {
+    public Room(String name, ArrayList<String> users, boolean isPrivate) {
         this.id = count++;
         this.name = name;
         this.users = users;
+        this.isPrivate = isPrivate;
     }
     public void addMessage(Message message) {
         messages.add(message);

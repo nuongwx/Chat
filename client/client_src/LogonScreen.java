@@ -43,6 +43,7 @@ public class LogonScreen extends JFrame {
                         JOptionPane.showMessageDialog(null, "Connected to server");
                         MainClient.logonScreen.remove(serverPanel);
                         MainClient.logonScreen.add(panel1);
+                        MainClient.logonScreen.getRootPane().setDefaultButton(loginButton);
                         MainClient.logonScreen.revalidate();
                         MainClient.logonScreen.repaint();
                     } catch (Exception e) {
@@ -187,7 +188,7 @@ public class LogonScreen extends JFrame {
 
 
 
-        this.getRootPane().setDefaultButton(loginButton);
+        this.getRootPane().setDefaultButton(connectButton);
 
         this.setSize(400, 400);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

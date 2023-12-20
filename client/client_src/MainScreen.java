@@ -22,6 +22,7 @@ public class MainScreen extends JFrame {
     public static DefaultListModel<String> roomMembersListModel = new DefaultListModel<String>();
     public static JList<String> roomMembersList = new JList<String>(roomMembersListModel);
     public static JTabbedPane tabbedPane = new JTabbedPane();
+    public static JPanel rightMemberPanel;
 
     JTextField textField = new JTextField();
     JButton fileButton = new JButton("✚");
@@ -41,6 +42,41 @@ public class MainScreen extends JFrame {
         leftTopPanel.setLayout(new BoxLayout(leftTopPanel, BoxLayout.Y_AXIS));
         leftTopPanel.add(new JLabel("Online Users"));
         leftTopPanel.add(onlineUsersList);
+        onlineUsersList.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (evt.getClickCount() == 2) {
+                    String username = onlineUsersList.getSelectedValue();
+                    boolean found = false;
+                    for (int i = 0; i < roomsListModel.size(); i++) {
+                        if (roomsListModel.get(i).name.equals(username + " - " + MainClient.username) || roomsListModel.get(i).name.equals(MainClient.username + " - " + username)) {
+                            roomsList.setSelectedIndex(i);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        try {
+                            MainClient.bw.write("create room\n");
+                            MainClient.bw.write(MainClient.username + " - " + username + "\n");
+                            MainClient.bw.write("true\n");
+                            MainClient.bw.write("1\n");
+                            MainClient.bw.write(username + "\n");
+                            MainClient.bw.flush();
+                            MainClient.bw.write("fetch rooms\n");
+                            MainClient.bw.flush();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+//                        Room room = new Room(null, username, true);
+//                        tabbedPane.addTab(username, room.roomMsgPanel);
+//                        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
+                    }
+//                    textField.setEnabled(true);
+//                    sendButton.setEnabled(true);
+//                    fileButton.setEnabled(true);
+                }
+            }
+        });
         leftSplitPane.setTopComponent(leftTopPanel);
 
         JPanel leftBottomPanel = new JPanel();
@@ -90,12 +126,15 @@ public class MainScreen extends JFrame {
                 JList membersList = new JList(onlineUsersListModel);
                 panel.add(new JLabel("Members"));
                 panel.add(membersList);
+                JCheckBox isPrivateCheckBox = new JCheckBox("Private");
+                panel.add(isPrivateCheckBox);
                 JOptionPane.showMessageDialog(null, panel);
                 String roomName = roomNameField.getText();
                 if (roomName != null && !roomName.isBlank()) {
                     try {
                         MainClient.bw.write("create room\n");
                         MainClient.bw.write(roomName + "\n");
+                        MainClient.bw.write(isPrivateCheckBox.isSelected() + "\n");
                         MainClient.bw.write(membersList.getSelectedValuesList().size() + "\n");
                         for (Object member : membersList.getSelectedValuesList()) {
                             MainClient.bw.write(member.toString() + "\n");
@@ -147,9 +186,18 @@ public class MainScreen extends JFrame {
                 for (String member : roomMsgPanel.room.members) {
                     roomMembersListModel.addElement(member);
                 }
+
+                if (roomMsgPanel.room.isPrivate) {
+                    rightMemberPanel.remove(inviteButton);
+                    rightMemberPanel.revalidate();
+                    rightMemberPanel.repaint();
+                } else if (rightMemberPanel.getComponents()[rightMemberPanel.getComponents().length - 1] != inviteButton) {
+                    rightMemberPanel.add(inviteButton);
+                    rightMemberPanel.revalidate();
+                    rightMemberPanel.repaint();
+                }
                 textField.setEnabled(true);
                 sendButton.setEnabled(true);
-                inviteButton.setEnabled(true);
                 fileButton.setEnabled(true);
             }
         });
@@ -181,7 +229,7 @@ public class MainScreen extends JFrame {
                         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
                         byte[] buffer = new byte[1024];
                         int count;
-                        if(file.length() > 0) {
+                        if (file.length() > 0) {
                             while ((count = bis.read(buffer)) > 0) {
                                 MainClient.os.write(buffer, 0, count);
                             }
@@ -208,7 +256,7 @@ public class MainScreen extends JFrame {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
                     String message = textField.getText();
-                    if(message.isBlank()) {
+                    if (message.isBlank()) {
                         return;
                     }
                     sendButton.doClick();
@@ -218,7 +266,7 @@ public class MainScreen extends JFrame {
         sendButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String message = textField.getText();
-                if(message.isBlank()) {
+                if (message.isBlank()) {
                     return;
                 }
                 try {
@@ -246,7 +294,7 @@ public class MainScreen extends JFrame {
         rightMiddlePane.add(buttonPanel, gbc);
         rightMiddlePane.setMinimumSize(new Dimension(200, 200));
 
-        JPanel rightMemberPanel = new JPanel();
+        rightMemberPanel = new JPanel();
         rightMemberPanel.setLayout(new BoxLayout(rightMemberPanel, BoxLayout.Y_AXIS));
         rightMemberPanel.add(new JLabel("Members"));
         rightMemberPanel.add(roomMembersList);
@@ -257,7 +305,13 @@ public class MainScreen extends JFrame {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 JPanel panel = new JPanel();
                 panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-                JList membersList = new JList(onlineUsersListModel);
+                DefaultListModel<String> onlineUsersInviteListModel = new DefaultListModel<String>();
+                for (String user : onlineUsers) {
+                    if (!((RoomMsgPanel) tabbedPane.getSelectedComponent()).room.members.contains(user)) {
+                        onlineUsersInviteListModel.addElement(user);
+                    }
+                }
+                JList membersList = new JList(onlineUsersInviteListModel);
                 panel.add(new JLabel("Members"));
                 panel.add(membersList);
                 JOptionPane.showMessageDialog(null, panel);

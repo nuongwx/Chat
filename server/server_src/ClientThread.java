@@ -187,6 +187,7 @@ public class ClientThread extends Thread {
                         case "create room":
                             String roomCreator = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
                             String roomName = receiver.readLine();
+                            boolean isPrivate = Boolean.parseBoolean(receiver.readLine());
                             Integer numberOfUsers = Integer.parseInt(receiver.readLine());
                             ArrayList<String> users = new ArrayList<String>();
                             for (int i = 0; i < numberOfUsers; i++) {
@@ -194,7 +195,7 @@ public class ClientThread extends Thread {
                             }
                             users.add(roomCreator);
 
-                            Room newRoom = new Room(roomName, users);
+                            Room newRoom = new Room(roomName, users, isPrivate);
                             MainServer.rooms.add(newRoom);
                             newMessage = new Message("Room created", roomCreator);
                             for (String user : users) {
@@ -342,6 +343,8 @@ public class ClientThread extends Thread {
                                     sender.write(room.id.toString());
                                     sender.newLine();
                                     sender.write(room.name);
+                                    sender.newLine();
+                                    sender.write(String.valueOf(room.isPrivate));
                                     sender.newLine();
                                     sender.flush();
                                 }

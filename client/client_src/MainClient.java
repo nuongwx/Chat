@@ -89,9 +89,9 @@ public class MainClient {
                                     Message message = new Message(Long.parseLong(messageId), text, author);
 
                                     if (MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).count() == 0) {
+                                        Room room = new Room(Long.parseLong(roomId), roomId);
                                         MainClient.bw.write("fetch rooms\n");
                                         MainClient.bw.flush();
-                                        Room room = new Room(Long.parseLong(roomId), roomId);
                                     }
                                     MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).findFirst().get().addMessage(message);
 //                                        if(MainScreen.currentRoom != null && MainScreen.currentRoom.id.equals(Long.parseLong(roomId))) {
@@ -136,13 +136,15 @@ public class MainClient {
                                     for (int i = 0; i < n; i++) {
                                         String roomId = br.readLine();
                                         String roomName = br.readLine();
+                                        boolean isPrivate = Boolean.parseBoolean(br.readLine());
                                         System.out.println(roomId + " " + roomName);
 //                                        MainScreen.rooms.add(new Room(Long.parseLong(roomId), roomName));\
                                         if (MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).count() == 0) {
 //                                            MainScreen.rooms.add(new Room(Long.parseLong(roomId), roomName));
-                                            new Room(Long.parseLong(roomId), roomName);
+                                            new Room(Long.parseLong(roomId), roomName, isPrivate);
                                         }
                                         MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).findFirst().get().setName(roomName);
+                                        MainScreen.rooms.stream().filter(room -> room.id.equals(Long.parseLong(roomId))).findFirst().get().isPrivate = isPrivate;
                                         MainClient.bw.write("fetch members\n");
                                         MainClient.bw.write(roomId + "\n");
                                         MainClient.bw.flush();

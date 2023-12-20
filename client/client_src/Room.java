@@ -6,10 +6,20 @@ public class Room {
     public ArrayList<String> members = new ArrayList<String>();
     private ArrayList<Message> messages = new ArrayList<Message>();
     public RoomMsgPanel roomMsgPanel;
+    public boolean isPrivate = false;
 
     public Room(Long id, String name) {
         this.id = id;
         this.name = name;
+        roomMsgPanel = new RoomMsgPanel(this);
+        MainScreen.roomsListModel.addElement(this);
+        MainScreen.rooms.add(this);
+    }
+
+    public Room(Long id, String name, boolean isPrivate) {
+        this.id = id;
+        this.name = name;
+        this.isPrivate = isPrivate;
         roomMsgPanel = new RoomMsgPanel(this);
         MainScreen.roomsListModel.addElement(this);
         MainScreen.rooms.add(this);
