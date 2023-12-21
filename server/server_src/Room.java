@@ -1,9 +1,9 @@
 package server_src;
 
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Objects;
 
-public class Room {
+public class Room implements Serializable {
     public static Long count = 0L;
     public Long id;
     public String name;

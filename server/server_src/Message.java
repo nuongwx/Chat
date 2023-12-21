@@ -1,9 +1,12 @@
 package server_src;
 
-public class Message {
+import java.io.Serializable;
+
+public class Message implements Serializable {
     public Long id;
     public String text;
     public String author;
+
     public Message(String text, String author) {
         this.id = System.currentTimeMillis();
         this.text = text;
