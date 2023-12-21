@@ -37,6 +37,7 @@ public class MainScreen extends JFrame {
 
         JSplitPane leftSplitPane = new JSplitPane();
         leftSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+        leftSplitPane.setDividerLocation(200);
 
         JPanel leftTopPanel = new JPanel();
         leftTopPanel.setLayout(new BoxLayout(leftTopPanel, BoxLayout.Y_AXIS));
@@ -158,6 +159,7 @@ public class MainScreen extends JFrame {
 
         JSplitPane rightSplitPane = new JSplitPane();
         rightSplitPane.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
+        rightSplitPane.setDividerLocation(500);
 
         JPanel rightMiddlePane = new JPanel();
         rightMiddlePane.setLayout(new GridBagLayout());
@@ -343,7 +345,7 @@ public class MainScreen extends JFrame {
 
         JSplitPane splitPane = new JSplitPane();
         splitPane.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(200);
+        splitPane.setDividerLocation(150);
         splitPane.setLeftComponent(leftPanel);
         splitPane.setRightComponent(rightPanel);
 

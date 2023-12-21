@@ -96,8 +96,6 @@ public class ClientThread extends Thread {
                             String username = receiver.readLine();
                             String password = receiver.readLine();
 
-                            System.out.println(username + " " + password);
-
                             BufferedReader br = new BufferedReader(new FileReader("user.txt"));
                             String line;
                             boolean found = false;
@@ -111,11 +109,14 @@ public class ClientThread extends Thread {
                             br.close();
                             if (found) {
                                 sender.write("login success");
+                                sender.newLine();
+                                sender.flush();
                             } else {
                                 sender.write("login failed");
+                                sender.newLine();
+                                sender.flush();
+                                break;
                             }
-                            sender.newLine();
-                            sender.flush();
                             MainServer.clients.put(username, this);
                             for (ClientThread clientThread : MainServer.clients.values()) {
                                 clientThread.sender.write("online");
