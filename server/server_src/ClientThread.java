@@ -1,23 +1,19 @@
 package server_src;
 
-import client_src.MainClient;
-
 import java.io.*;
-import java.net.*;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
+import java.util.Objects;
 
 public class ClientThread extends Thread {
     public Socket socket;
-
+    public String username;
     public InputStream inputStream;
     public OutputStream outputStream;
     public BufferedReader receiver;
     public BufferedWriter sender;
 
-//    public DataInputStream dis;
-//    public DataOutputStream dos;
 
     public ClientThread(Socket socket) throws IOException {
         this.socket = socket;
@@ -25,8 +21,6 @@ public class ClientThread extends Thread {
         outputStream = socket.getOutputStream();
         receiver = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
         sender = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
-//        dis = new DataInputStream(socket.getInputStream());
-//        dos = new DataOutputStream(socket.getOutputStream());
     }
 
     public static void SendMessage(ClientThread clientThread, Room room, Message message) {
@@ -63,7 +57,7 @@ public class ClientThread extends Thread {
                 clientThread.sender.newLine();
                 clientThread.sender.flush();
                 for (String user : MainServer.clients.keySet()) {
-                    if (!user.equals(MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(clientThread)).findFirst().get().getKey())) {
+                    if (!user.equals(clientThread.username)) {
                         clientThread.sender.write(user);
                         System.out.println(user);
                         clientThread.sender.newLine();
@@ -88,10 +82,11 @@ public class ClientThread extends Thread {
                 System.out.println(rp);
                 try {
                     switch (rp) {
-                        case "quit":
+                        case "quit": {
                             System.out.println("src.Client has left !");
                             break;
-                        case "login":
+                        }
+                        case "login": {
                             System.out.println("src.Client is logging in");
                             String username = receiver.readLine();
                             String password = receiver.readLine();
@@ -118,6 +113,7 @@ public class ClientThread extends Thread {
                                 break;
                             }
                             MainServer.clients.put(username, this);
+                            this.username = username;
                             for (ClientThread clientThread : MainServer.clients.values()) {
                                 clientThread.sender.write("online");
                                 clientThread.sender.newLine();
@@ -125,7 +121,7 @@ public class ClientThread extends Thread {
                                 clientThread.sender.newLine();
                                 clientThread.sender.flush();
                                 for (String user : MainServer.clients.keySet()) {
-                                    if (!user.equals(MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(clientThread)).findFirst().get().getKey())) {
+                                    if (!user.equals(clientThread.username)) {
                                         clientThread.sender.write(user);
                                         clientThread.sender.newLine();
                                         clientThread.sender.flush();
@@ -134,14 +130,16 @@ public class ClientThread extends Thread {
                             }
 
                             break;
-                        case "register":
+                        }
+                        case "register": {
                             System.out.println("src.Client is registering");
-                            username = receiver.readLine();
-                            password = receiver.readLine();
+                            String username = receiver.readLine();
+                            String password = receiver.readLine();
 
                             System.out.println(username + " " + password);
-                            br = new BufferedReader(new FileReader("user.txt"));
-                            found = false;
+                            BufferedReader br = new BufferedReader(new FileReader("user.txt"));
+                            boolean found = false;
+                            String line;
                             while ((line = br.readLine()) != null) {
                                 if (line.startsWith(username + ";")) {
                                     found = true;
@@ -162,35 +160,32 @@ public class ClientThread extends Thread {
                             sender.newLine();
                             sender.flush();
                             break;
-                        case "message":
+                        }
+                        case "message": {
                             Long roomId = Long.parseLong(receiver.readLine());
-                            String senderName = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
+                            String senderName = username;
                             String message = receiver.readLine();
-//                        while(receiver.ready()) {
-//                            message += "\n" + receiver.readLine();
-//                        }
                             System.out.println("src.Message: " + message);
+
+                            Room room = MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().orElse(null);
+                            if (room == null) {
+                                break;
+                            }
 
                             Message newMessage = new Message(message, senderName);
 
-                            for (server_src.Room room : MainServer.rooms) {
-                                if (room.id.equals(roomId)) {
-                                    room.messages.add(newMessage);
-                                    for (String user : room.users) {
-//                                        if (!user.equals(senderName)) {
-                                        SendMessage(MainServer.clients.get(user), room, newMessage);
-//                                        }
-                                    }
-                                    break;
-                                }
+                            room.messages.add(newMessage);
+                            for (String user : room.users) {
+                                SendMessage(MainServer.clients.get(user), room, newMessage);
                             }
                             break;
-                        case "create room":
-                            String roomCreator = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
+                        }
+                        case "create room": {
+                            String roomCreator = username;
                             String roomName = receiver.readLine();
                             boolean isPrivate = Boolean.parseBoolean(receiver.readLine());
-                            Integer numberOfUsers = Integer.parseInt(receiver.readLine());
-                            ArrayList<String> users = new ArrayList<String>();
+                            int numberOfUsers = Integer.parseInt(receiver.readLine());
+                            ArrayList<String> users = new ArrayList<>();
                             for (int i = 0; i < numberOfUsers; i++) {
                                 users.add(receiver.readLine());
                             }
@@ -198,21 +193,22 @@ public class ClientThread extends Thread {
 
                             Room newRoom = new Room(roomName, users, isPrivate);
                             MainServer.rooms.add(newRoom);
-                            newMessage = new Message("Room created", roomCreator);
+                            Message newMessage = new Message("Room created", roomCreator);
                             for (String user : users) {
                                 SendMessage(MainServer.clients.get(user), newRoom, newMessage);
                             }
                             break;
-                        case "upload":
-                            roomId = Long.parseLong(receiver.readLine());
-                            String name = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
+                        }
+                        case "upload": {
+                            Long roomId = Long.parseLong(receiver.readLine());
+                            String name = username;
                             String fileName = receiver.readLine();
-                            Long fileSize = Long.parseLong(receiver.readLine());
+                            long fileSize = Long.parseLong(receiver.readLine());
                             // ​ marker
                             Message messageUpload = new Message("\u200BFile uploaded: " + fileName + " (" + fileSize + " bytes)", name);
                             FileOutputStream fos = new FileOutputStream(messageUpload.id + "_" + fileName);
                             byte[] buffer = new byte[4096];
-                            int length = 0;
+                            int length;
                             if (fileSize > 0) {
                                 while ((length = inputStream.read(buffer)) > 0) {
                                     fos.write(buffer, 0, length);
@@ -224,20 +220,21 @@ public class ClientThread extends Thread {
                             }
                             System.out.println("File uploaded: " + fileName);
                             fos.close();
-                            for (server_src.Room room : MainServer.rooms) {
-                                if (room.id.equals(roomId)) {
-                                    room.messages.add(messageUpload);
-                                    for (String user : room.users) {
-                                        SendMessage(MainServer.clients.get(user), room, messageUpload);
-                                    }
-                                    break;
-                                }
+                            Room room = MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().orElse(null);
+                            if (room == null) {
+                                break;
                             }
-                            receiver = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                            room.messages.add(messageUpload);
+                            for (String user : room.users) {
+                                SendMessage(MainServer.clients.get(user), room, messageUpload);
+                            }
+
                             break;
-                        case "download":
+                        }
+                        case "download": {
                             String id = receiver.readLine();
-                            for (File file : new File(".").listFiles()) {
+                            for (File file : Objects.requireNonNull(new File(".").listFiles())) {
                                 if (file.getName().startsWith(id)) {
                                     System.out.println("Sending file " + file.getName());
                                     sender.write("download");
@@ -255,7 +252,7 @@ public class ClientThread extends Thread {
                                     }
                                     FileInputStream fis = new FileInputStream(file);
                                     byte[] bufferDownload = new byte[4096];
-                                    int lengthDownload = 0;
+                                    int lengthDownload;
                                     if (file.length() > 0) {
                                         while ((lengthDownload = fis.read(bufferDownload)) > 0) {
                                             outputStream.write(bufferDownload, 0, lengthDownload);
@@ -268,46 +265,30 @@ public class ClientThread extends Thread {
                                 }
                             }
                             break;
-                        case "invite":
-                            String inviter = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
-                            roomId = Long.parseLong(receiver.readLine());
-                            Integer numberOfInvitees = Integer.parseInt(receiver.readLine());
-                            ArrayList<String> invitees = new ArrayList<String>();
+                        }
+                        case "invite": {
+                            String inviter = username;
+                            Long roomId = Long.parseLong(receiver.readLine());
+                            int numberOfInvitees = Integer.parseInt(receiver.readLine());
+                            ArrayList<String> invitees = new ArrayList<>();
                             for (int i = 0; i < numberOfInvitees; i++) {
                                 invitees.add(receiver.readLine());
                             }
-
-                            for (String invitee : invitees) {
-                                Room room = MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().get();
-                                room.users.add(invitee);
-//                                SendMessage(MainServer.clients.get(invitee), room, new Message(inviter + " has invited you to join the room", inviter));
+                            Room room = MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().orElse(null);
+                            if (room == null) {
+                                break;
                             }
-//                            SendMessage(this, MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().get(), new Message("Invitation sent", inviter));
-                            newMessage = new Message(inviter + " has invited " + invitees.stream().reduce((a, b) -> a + ", " + b).get() + " to join the room", inviter);
-                            for (String member : MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().get().users) {
-                                SendMessage(MainServer.clients.get(member), MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().get(), newMessage);
+                            room.users.addAll(invitees);
+                            Message newMessage = new Message(inviter + " has invited " + invitees.stream().reduce((a, b) -> a + ", " + b).orElse("") + " to join the room", inviter);
+                            for (String member : room.users) {
+                                SendMessage(MainServer.clients.get(member), room, newMessage);
                             }
 
                             break;
-
-//                            for (server_src.Room room : MainServer.rooms) {
-//                                if (room.id.equals(roomId)) {
-//                                    room.users.add(invitee);
-//                                    for (String user : room.users) {
-////                                        if (!user.equals(inviter)) {
-//
-//                                          if (MainServer.clients.containsKey(user)) {
-//                                              SendMessage(MainServer.clients.get(user), room, new Message(invitee + " has joined the room", inviter));
-//                                          }
-////                                        }
-//                                    }
-//                                    break;
-//                                }
-//                            }
-//                            break;
-                        case "sync":
-                            String usernameSync = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
-                            for (server_src.Room room : MainServer.rooms) {
+                        }
+                        case "sync": {
+                            String usernameSync = username;
+                            for (Room room : MainServer.rooms) {
                                 System.out.println(room.id);
                                 if (room.users.contains(usernameSync)) {
                                     for (Message msg : room.messages) {
@@ -317,8 +298,9 @@ public class ClientThread extends Thread {
                                 }
                             }
                             break;
-                        case "online":
-                            String usernameOnline = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
+                        }
+                        case "online": {
+                            String usernameOnline = username;
                             sender.write("online");
                             sender.newLine();
                             sender.write(String.valueOf(MainServer.clients.size() - 1));
@@ -332,14 +314,15 @@ public class ClientThread extends Thread {
                                 }
                             }
                             break;
-                        case "fetch rooms":
-                            String usernameFetch = MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey();
+                        }
+                        case "fetch rooms": {
+                            String usernameFetch = username;
                             sender.write("rooms");
                             sender.newLine();
                             sender.write(String.valueOf(MainServer.rooms.stream().filter(room -> room.users.contains(usernameFetch)).count()));
                             sender.newLine();
                             sender.flush();
-                            for (server_src.Room room : MainServer.rooms) {
+                            for (Room room : MainServer.rooms) {
                                 if (room.users.contains(usernameFetch)) {
                                     sender.write(room.id.toString());
                                     sender.newLine();
@@ -351,66 +334,65 @@ public class ClientThread extends Thread {
                                 }
                             }
                             break;
-                        case "fetch members":
-                            roomId = Long.parseLong(receiver.readLine());
+                        }
+                        case "fetch members": {
+                            Long roomId = Long.parseLong(receiver.readLine());
+                            Room room = MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().orElse(null);
+                            if (room == null) {
+                                break;
+                            }
                             sender.write("members");
                             sender.newLine();
                             sender.write(roomId.toString());
                             sender.newLine();
-                            sender.write(String.valueOf(MainServer.rooms.stream().filter(room -> room.id.equals(roomId)).findFirst().get().users.size()));
+                            sender.write(String.valueOf(room.users.size()));
                             sender.newLine();
                             sender.flush();
-                            for (server_src.Room room : MainServer.rooms) {
-                                if (room.id.equals(roomId)) {
-                                    for (String user : room.users) {
-                                        sender.write(user);
-                                        sender.newLine();
-                                        sender.flush();
-                                    }
-                                    break;
-                                }
+                            for (String user : room.users) {
+                                sender.write(user);
+                                sender.newLine();
+                                sender.flush();
                             }
                             break;
-                        case "fetch messages":
-                            roomId = Long.parseLong(receiver.readLine());
+                        }
+                        case "fetch messages": {
+                            Long roomId = Long.parseLong(receiver.readLine());
+                            Room room = MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().orElse(null);
+                            if (room == null) {
+                                break;
+                            }
                             sender.write("messages");
                             sender.newLine();
-                            sender.write(String.valueOf(MainServer.rooms.stream().filter(room -> room.id.equals(roomId)).findFirst().get().messages.size()));
+                            sender.write(String.valueOf(room.messages.size()));
                             sender.newLine();
-                            for (server_src.Room room : MainServer.rooms) {
-                                if (room.id.equals(roomId)) {
-                                    for (Message msg : room.messages) {
-                                        SendMessage(this, room, msg);
-                                    }
-                                    break;
-                                }
+                            for (Message msg : room.messages) {
+                                SendMessage(this, room, msg);
                             }
                             sender.flush();
                             break;
-                        case "delete message":
-                            roomId = Long.parseLong(receiver.readLine());
-                            System.out.println("Room id" + roomId.toString());
+                        }
+                        case "delete message": {
+                            Long roomId = Long.parseLong(receiver.readLine());
+                            System.out.println("Room id" + roomId);
                             Long messageId = Long.parseLong(receiver.readLine());
-                            System.out.println("Message id" + messageId.toString());
-                            for (server_src.Room room : MainServer.rooms) {
-                                if (room.id.equals(roomId)) {
-                                    for (Message msg : room.messages) {
-                                        if (msg.id.equals(messageId)) {
-                                            msg.text = "deleted";
-                                            for(String user : room.users) {
-                                                SendMessage(MainServer.clients.get(user), room, msg);
-                                            }
-//                                            SendMessage(this, room, msg);
-//                                          delete the message from the server
-                                            room.messages.remove(msg);
+                            System.out.println("Message id" + messageId);
 
-                                            break;
-                                        }
-                                    }
-                                    break;
-                                }
+                            Room room = MainServer.rooms.stream().filter(r -> r.id.equals(roomId)).findFirst().orElse(null);
+                            if (room == null) {
+                                break;
                             }
+                            Message msg = room.messages.stream().filter(m -> m.id.equals(messageId)).findFirst().orElse(null);
+                            if (msg == null) {
+                                break;
+                            }
+                            msg.text = "deleted";
+                            for (String user : room.users) {
+                                SendMessage(MainServer.clients.get(user), room, msg);
+                            }
+                            room.messages.remove(msg);
+
                             break;
+                        }
 
                         default:
                             System.out.println("Received : " + rp);
@@ -418,14 +400,13 @@ public class ClientThread extends Thread {
                     }
                 } catch (Exception e) {
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
                 }
 
 
             }
         } catch (IOException e) {
             System.out.println(e.getMessage());
-            MainServer.clients.remove(MainServer.clients.entrySet().stream().filter(entry -> entry.getValue().equals(this)).findFirst().get().getKey());
+            MainServer.clients.remove(username);
             onlineUsers();
         }
     }
