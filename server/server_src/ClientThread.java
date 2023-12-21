@@ -193,7 +193,7 @@ public class ClientThread extends Thread {
 
                             Room newRoom = new Room(roomName, users, isPrivate);
                             MainServer.rooms.add(newRoom);
-                            Message newMessage = new Message("Room created", roomCreator);
+                            Message newMessage = new Message("Room created", "SYSTEM");
                             for (String user : users) {
                                 SendMessage(MainServer.clients.get(user), newRoom, newMessage);
                             }
@@ -279,7 +279,7 @@ public class ClientThread extends Thread {
                                 break;
                             }
                             room.users.addAll(invitees);
-                            Message newMessage = new Message(inviter + " has invited " + invitees.stream().reduce((a, b) -> a + ", " + b).orElse("") + " to join the room", inviter);
+                            Message newMessage = new Message(inviter + " has invited " + invitees.stream().reduce((a, b) -> a + ", " + b).orElse("") + " to join the room", "SYSTEM");
                             for (String member : room.users) {
                                 SendMessage(MainServer.clients.get(member), room, newMessage);
                             }

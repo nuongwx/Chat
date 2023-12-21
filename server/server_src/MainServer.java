@@ -1,5 +1,6 @@
 package server_src;
 
+import java.io.File;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -11,6 +12,10 @@ public class MainServer {
     public static ServerSocket serverSocket;
     public static void main(String[] args) {
         try {
+            File userFile = new File("user.txt");
+            userFile.createNewFile();
+            userFile.setWritable(true);
+
             serverSocket = new ServerSocket(3200);
             System.out.println("Server is running on port 3200");
             //noinspection InfiniteLoopStatement
