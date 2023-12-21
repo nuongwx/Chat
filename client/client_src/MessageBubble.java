@@ -51,29 +51,25 @@ public class MessageBubble extends JPanel {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     JPopupMenu popupMenu = new JPopupMenu();
                     JMenuItem deleteItem = new JMenuItem("Delete");
-                    deleteItem.addActionListener(new java.awt.event.ActionListener() {
-                        public void actionPerformed(java.awt.event.ActionEvent evt) {
-                            try {
-                                MainClient.bw.write("delete message\n");
-                                MainClient.bw.write(roomMsgPanel.room.id + "\n");
-                                MainClient.bw.write(message.id + "\n");
-                                MainClient.bw.flush();
-                            } catch (Exception e) {
-                                System.out.println(e.getMessage());
-                            }
+                    deleteItem.addActionListener(evt -> {
+                        try {
+                            MainClient.bw.write("delete message\n");
+                            MainClient.bw.write(roomMsgPanel.room.id + "\n");
+                            MainClient.bw.write(message.id + "\n");
+                            MainClient.bw.flush();
+                        } catch (Exception e12) {
+                            System.out.println(e12.getMessage());
                         }
                     });
 
                     JMenuItem downloadItem = new JMenuItem("Download");
-                    downloadItem.addActionListener(new java.awt.event.ActionListener() {
-                        public void actionPerformed(java.awt.event.ActionEvent evt) {
-                            try {
-                                MainClient.bw.write("download\n");
-                                MainClient.bw.write(message.id + "\n");
-                                MainClient.bw.flush();
-                            } catch (Exception e) {
-                                System.out.println(e.getMessage());
-                            }
+                    downloadItem.addActionListener(evt -> {
+                        try {
+                            MainClient.bw.write("download\n");
+                            MainClient.bw.write(message.id + "\n");
+                            MainClient.bw.flush();
+                        } catch (Exception e1) {
+                            System.out.println(e1.getMessage());
                         }
                     });
                     if (message.author.equals(MainClient.username)) {
@@ -116,29 +112,25 @@ public class MessageBubble extends JPanel {
                 if (SwingUtilities.isRightMouseButton(evt)) {
                     JPopupMenu popupMenu = new JPopupMenu();
                     JMenuItem deleteItem = new JMenuItem("Delete");
-                    deleteItem.addActionListener(new java.awt.event.ActionListener() {
-                        public void actionPerformed(java.awt.event.ActionEvent evt) {
-                            try {
-                                MainClient.bw.write("delete message\n");
-                                MainClient.bw.write(roomMsgPanel.room.id + "\n");
-                                MainClient.bw.write(message.id + "\n");
-                                MainClient.bw.flush();
-                            } catch (Exception e) {
-                                System.out.println(e.getMessage());
-                            }
+                    deleteItem.addActionListener(evt12 -> {
+                        try {
+                            MainClient.bw.write("delete message\n");
+                            MainClient.bw.write(roomMsgPanel.room.id + "\n");
+                            MainClient.bw.write(message.id + "\n");
+                            MainClient.bw.flush();
+                        } catch (Exception e) {
+                            System.out.println(e.getMessage());
                         }
                     });
 
                     JMenuItem downloadItem = new JMenuItem("Download");
-                    downloadItem.addActionListener(new java.awt.event.ActionListener() {
-                        public void actionPerformed(java.awt.event.ActionEvent evt) {
-                            try {
-                                MainClient.bw.write("download file\n");
-                                MainClient.bw.write(message.id + "\n");
-                                MainClient.bw.flush();
-                            } catch (Exception e) {
-                                System.out.println(e.getMessage());
-                            }
+                    downloadItem.addActionListener(evt1 -> {
+                        try {
+                            MainClient.bw.write("download file\n");
+                            MainClient.bw.write(message.id + "\n");
+                            MainClient.bw.flush();
+                        } catch (Exception e) {
+                            System.out.println(e.getMessage());
                         }
                     });
                     if (message.author.equals(MainClient.username)) {

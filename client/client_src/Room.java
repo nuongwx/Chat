@@ -3,8 +3,8 @@ import java.util.*;
 public class Room {
     public Long id;
     public String name;
-    public ArrayList<String> members = new ArrayList<String>();
-    private ArrayList<Message> messages = new ArrayList<Message>();
+    public ArrayList<String> members = new ArrayList<>();
+    private final ArrayList<Message> messages = new ArrayList<>();
     public RoomMsgPanel roomMsgPanel;
     public boolean isPrivate = false;
 
@@ -26,7 +26,7 @@ public class Room {
     }
 
     public void addMessage(Message message) {
-        // if messageid already exists, delete the old message
+        // if messageId already exists, delete the old message
         for (int i = 0; i < messages.size(); i++) {
             if (messages.get(i).id.equals(message.id)) {
                 messages.remove(i);
@@ -57,14 +57,6 @@ public class Room {
         if(!members.contains(username)) {
             members.add(username);
         }
-    }
-
-    public void removeMember(String username) {
-        members.remove(username);
-    }
-
-    public void refresh() {
-        roomMsgPanel.refresh();
     }
 
     public String toString() {

@@ -2,8 +2,6 @@ package client_src;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.IOException;
-import java.util.*;
 
 public class RoomMsgPanel extends JPanel {
     public JPanel msgPanel = new JPanel();
@@ -56,9 +54,6 @@ public class RoomMsgPanel extends JPanel {
         for (Message message : room.getMessages()) {
             this.addMessage(message);
         }
-//        msgPanel.revalidate();
-//        msgPanel.repaint();
-
     }
 
     @Override
